@@ -1,0 +1,109 @@
+{
+  "id": null,
+  "uid": "ecommerce-business-kpis",
+  "title": "E-Commerce API - Business KPIs",
+  "tags": ["ecommerce-api", "business-kpi", "observability"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "5s",
+  "time": { "from": "now-30m", "to": "now" },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Total Orders Created",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "gridPos": { "h": 6, "w": 8, "x": 0, "y": 0 },
+      "targets": [
+        { "expr": "sum(orders_created_total)", "refId": "A" }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Total Payment Failures",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "gridPos": { "h": 6, "w": 8, "x": 8, "y": 0 },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "orange", "value": 1 },
+              { "color": "red", "value": 10 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "targets": [
+        { "expr": "sum(payment_failures_total)", "refId": "A" }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Payment Failure Ratio (%)",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "gridPos": { "h": 6, "w": 8, "x": 16, "y": 0 },
+      "fieldConfig": { "defaults": { "unit": "percent" }, "overrides": [] },
+      "targets": [
+        {
+          "expr": "100 * sum(payment_failures_total) / clamp_min(sum(orders_created_total) + sum(payment_failures_total), 1)",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Orders Created Over Time",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 6 },
+      "targets": [
+        {
+          "expr": "sum(rate(orders_created_total[1m]))",
+          "legendFormat": "orders/sec",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "title": "Payment Failures Over Time",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 6 },
+      "targets": [
+        {
+          "expr": "sum(rate(payment_failures_total[1m]))",
+          "legendFormat": "payment failures/sec",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "title": "Orders Created vs Payment Failures (5m increase)",
+      "type": "barchart",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 14 },
+      "targets": [
+        { "expr": "increase(orders_created_total[5m])", "legendFormat": "orders created", "refId": "A" },
+        { "expr": "increase(payment_failures_total[5m])", "legendFormat": "payment failures", "refId": "B" }
+      ]
+    }
+  ],
+  "templating": {
+    "list": [
+      {
+        "name": "DS_PROMETHEUS",
+        "type": "datasource",
+        "query": "prometheus",
+        "current": { "text": "Prometheus", "value": "Prometheus" }
+      }
+    ]
+  }
+}

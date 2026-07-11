@@ -1,0 +1,86 @@
+version: '3.8'
+
+services:
+  api:
+    build:
+      context: ./app
+    container_name: ecommerce-api
+    ports:
+      - "8080:8080"
+    environment:
+      - SERVICE_NAME=ecommerce-api
+      - PORT=8080
+      - OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=http://jaeger:4318/v1/traces
+      - OTEL_SAMPLING_RATIO=0.15
+      - PAYMENT_SERVICE_URL=http://payment:9000/charge
+      - PAYMENT_TIMEOUT_MS=5000
+    depends_on:
+      - jaeger
+      - payment
+    networks:
+      - observability-net
+    restart: unless-stopped
+
+  payment:
+    build:
+      context: ./payment-service
+    container_name: payment-mock
+    environment:
+      - PORT=9000
+      - PAYMENT_FAILURE_RATE=0.1
+    networks:
+      - observability-net
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--web.enable-lifecycle'
+    depends_on:
+      - api
+    networks:
+      - observability-net
+    restart: unless-stopped
+
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    container_name: jaeger
+    ports:
+      - "16686:16686" # Jaeger UI
+      - "4317:4317"   # OTLP gRPC receiver
+      - "4318:4318"   # OTLP HTTP receiver
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+    networks:
+      - observability-net
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./observability/grafana:/var/lib/grafana/dashboards:ro
+    depends_on:
+      - prometheus
+      - jaeger
+    networks:
+      - observability-net
+    restart: unless-stopped
+
+networks:
+  observability-net:
+    driver: bridge

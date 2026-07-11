@@ -1,0 +1,16 @@
+{
+  "name": "payment-mock-service",
+  "version": "1.0.0",
+  "description": "Lightweight mock external payment gateway used to simulate a realistic outbound HTTP dependency with network latency and configurable failure rate",
+  "main": "src/index.js",
+  "private": true,
+  "scripts": {
+    "start": "node src/index.js"
+  },
+  "dependencies": {
+    "express": "^4.21.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
